@@ -131,7 +131,9 @@ func findCertificateByKeyID(session *pkcs11Session, keyID []byte) (cert *x509.Ce
 	return nil, errors.New("no certificate with required subject key ID found")
 }
 
-func findCertificateChain(session *pkcs11Session, cert *x509.Certificate) (certs []*x509.Certificate, err error) {
+func findCertificateChain(
+	session *pkcs11Session, cert *x509.Certificate) (certs []*x509.Certificate, err error) {
+
 	if len(cert.RawIssuer) == 0 || bytes.Equal(cert.RawIssuer, cert.RawSubject) {
 		return nil, nil
 	}
@@ -143,25 +145,31 @@ func findCertificateChain(session *pkcs11Session, cert *x509.Certificate) (certs
 		return nil, err
 	}
 
+	var nextCert *x509.Certificate
 	if len(handles) == 0 {
-		if cert, err = findCertificateByKeyID(session, cert.AuthorityKeyId); err != nil {
+		if nextCert, err = findCertificateByKeyID(session, cert.AuthorityKeyId); err != nil {
+			chains, verifyErr := cert.Verify(x509.VerifyOptions{})
+			print(chains, verifyErr)
 			return nil, err
 		}
 	} else {
-		if cert, err = getX509Certificate(session, handles[0]); err != nil {
+		if nextCert, err = getX509Certificate(session, handles[0]); err != nil {
+			chains, verifyErr := cert.Verify(x509.VerifyOptions{})
+			print(chains, verifyErr)
 			return nil, err
 		}
 	}
 
 	for _, foundCert := range certs {
-		if bytes.Equal(cert.RawSubject, foundCert.RawSubject) {
+		if bytes.Equal(nextCert.RawSubject, foundCert.RawSubject) {
+			// ROOT found
 			return certs, nil
 		}
 	}
 
-	certs = append(certs, cert)
+	certs = append(certs, nextCert)
 
-	certChain, err := findCertificateChain(session, cert)
+	certChain, err := findCertificateChain(session, nextCert)
 	if err != nil {
 		return nil, err
 	}
@@ -190,9 +198,11 @@ func (c *Context) FindCertificate(id []byte, label []byte, serial *big.Int) (*x5
 	return cert, err
 }
 
-// FindCertificateChain retrieves a previously imported certificate chain. Any combination of id, label
+// FindCertificateChainByIdOrLabelOrSerial retrieves a previously imported certificate chain. Any combination of id, label
 // and serial can be provided. An error is return if all are nil.
-func (c *Context) FindCertificateChain(id []byte, label []byte, serial *big.Int) (certs []*x509.Certificate, err error) {
+func (c *Context) FindCertificateChainByIdOrLabelOrSerial(
+	id []byte, label []byte, serial *big.Int) (certs []*x509.Certificate, err error) {
+
 	if c.closed.Get() {
 		return nil, errClosed
 	}
@@ -207,6 +217,39 @@ func (c *Context) FindCertificateChain(id []byte, label []byte, serial *big.Int)
 			return nil
 		}
 
+		certs = append(certs, cert)
+
+		certChain, err := findCertificateChain(session, cert)
+		if err != nil {
+			return err
+		}
+
+		if len(certChain) == 0 {
+			return nil
+		}
+
+		certs = append(certs, certChain...)
+
+		return nil
+	})
+
+	return certs, err
+}
+
+// FindCertificateChainByIdOrLabelOrSerial retrieves a previously imported certificate chain. Any combination of id, label
+// and serial can be provided. An error is return if all are nil.
+func (c *Context) FindCertificateChain(
+	cert *x509.Certificate) (certs []*x509.Certificate, err error) {
+
+	if c.closed.Get() {
+		return nil, errClosed
+	}
+
+	if cert == nil {
+		return
+	}
+
+	err = c.withSession(func(session *pkcs11Session) (err error) {
 		certs = append(certs, cert)
 
 		certChain, err := findCertificateChain(session, cert)

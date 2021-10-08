@@ -243,7 +243,7 @@ func TestCertificateChain(t *testing.T) {
 		authorityKeyId = subjectKeyID
 	}
 
-	foundCertChain, err := ctx.FindCertificateChain(ids[0], nil, nil)
+	foundCertChain, err := ctx.FindCertificateChainByIdOrLabelOrSerial(ids[0], nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, foundCertChain)
 
@@ -268,7 +268,7 @@ func TestCertificateChain(t *testing.T) {
 
 	ids[len(ids)-1] = id
 
-	foundCertChain, err = ctx.FindCertificateChain(ids[0], nil, nil)
+	foundCertChain, err = ctx.FindCertificateChainByIdOrLabelOrSerial(ids[0], nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, foundCertChain)
 
@@ -283,7 +283,7 @@ func TestCertificateChain(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	foundCertChain, err = ctx.FindCertificateChain([]byte("test2"), nil, nil)
+	foundCertChain, err = ctx.FindCertificateChainByIdOrLabelOrSerial([]byte("test2"), nil, nil)
 	require.NoError(t, err)
 	assert.Nil(t, foundCertChain)
 }
