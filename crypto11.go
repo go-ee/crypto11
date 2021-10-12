@@ -89,6 +89,7 @@ package crypto11
 
 import (
 	"crypto"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -181,6 +182,10 @@ type Context struct {
 	// persistentSession is a session held open so we can be confident handles and login status
 	// persist for the duration of this context
 	persistentSession pkcs11.SessionHandle
+
+	//for certificate chain building
+	roots  *x509.CertPool
+	inters *x509.CertPool
 }
 
 // Signer is a PKCS#11 key that implements crypto.Signer.
@@ -265,6 +270,13 @@ type Config struct {
 	GCMIVLength int
 
 	GCMIVFromHSMControl GCMIVFromHSMConfig
+
+	// CertNotUseSystemPool use system cert pool or not. Default is used.
+	CertNotUseSystemPool bool
+	// CertFiles root or intermediate certificates the leaf certificate needs to chain up to. (colon separated)
+	CertFiles string
+	// CertDirectories with root or intermediate certificates the leaf certificate needs to chain up to. (colon separated)
+	CertDirectories string
 }
 
 type GCMIVFromHSMConfig struct {
@@ -318,6 +330,10 @@ func Configure(config *Config) (*Context, error) {
 	instance := &Context{
 		cfg: config,
 		ctx: pkcs11.New(config.Path),
+	}
+
+	if err := instance.loadCertPools(); err != nil {
+		fmt.Printf("load cert pools failed: %v", err)
 	}
 
 	if instance.ctx == nil {

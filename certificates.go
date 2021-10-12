@@ -148,15 +148,11 @@ func findCertificateChain(
 	var nextCert *x509.Certificate
 	if len(handles) == 0 {
 		if nextCert, err = findCertificateByKeyID(session, cert.AuthorityKeyId); err != nil {
-			chains, verifyErr := cert.Verify(x509.VerifyOptions{})
-			print(chains, verifyErr)
-			return nil, err
+			return findCertificateChainFromPoolsOrErr(session, cert, err)
 		}
 	} else {
 		if nextCert, err = getX509Certificate(session, handles[0]); err != nil {
-			chains, verifyErr := cert.Verify(x509.VerifyOptions{})
-			print(chains, verifyErr)
-			return nil, err
+			return findCertificateChainFromPoolsOrErr(session, cert, err)
 		}
 	}
 
@@ -179,6 +175,31 @@ func findCertificateChain(
 	}
 
 	return certs, nil
+}
+
+func findCertificateChainFromPoolsOrErr(
+	session *pkcs11Session, cert *x509.Certificate, prevErr error) (ret []*x509.Certificate, err error) {
+
+	if ret, err = findCertificateChainFromPools(session, cert); err != nil {
+		err = prevErr
+	}
+	return
+}
+
+func findCertificateChainFromPools(session *pkcs11Session, cert *x509.Certificate) (ret []*x509.Certificate, err error) {
+	var chains [][]*x509.Certificate
+	chains, err = cert.Verify(x509.VerifyOptions{
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		Intermediates: session.inters,
+		Roots:         session.roots,
+	})
+	if len(chains) > 0 {
+		ret = chains[0]
+		if len(ret) > 0 {
+			ret = ret[1:]
+		}
+	}
+	return
 }
 
 // FindCertificate retrieves a previously imported certificate. Any combination of id, label

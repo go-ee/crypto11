@@ -23,6 +23,7 @@ package crypto11
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 
 	"github.com/miekg/pkcs11"
@@ -33,6 +34,10 @@ import (
 type pkcs11Session struct {
 	ctx    *pkcs11.Ctx
 	handle pkcs11.SessionHandle
+
+	//for certificate chain building
+	roots  *x509.CertPool
+	inters *x509.CertPool
 }
 
 // Close is required to satisfy the pools.Resource interface. It closes the session, but swallows any
@@ -84,5 +89,5 @@ func (c *Context) resourcePoolFactoryFunc() (pool.Resource, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &pkcs11Session{c.ctx, session}, nil
+	return &pkcs11Session{c.ctx, session, c.roots, c.inters}, nil
 }
