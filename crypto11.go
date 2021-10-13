@@ -271,8 +271,8 @@ type Config struct {
 
 	GCMIVFromHSMControl GCMIVFromHSMConfig
 
-	// CertNotUseSystemPool use system cert pool or not. Default is used.
-	CertNotUseSystemPool bool
+	// IgnoreSystemCertPool use system cert pool or not. Default is used.
+	IgnoreSystemCertPool bool
 	// CertFiles root or intermediate certificates the leaf certificate needs to chain up to. (colon separated)
 	CertFiles string
 	// CertDirectories with root or intermediate certificates the leaf certificate needs to chain up to. (colon separated)

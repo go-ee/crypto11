@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Context) loadCertPools() (err error) {
-	if c.cfg.CertNotUseSystemPool {
+	if c.cfg.IgnoreSystemCertPool {
 		c.roots = x509.NewCertPool()
 	} else {
 		if c.roots, err = x509.SystemCertPool(); err != nil {
