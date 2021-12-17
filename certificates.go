@@ -272,23 +272,22 @@ func (c *Context) FindCertificateChain(
 	}
 
 	err = c.withSession(func(session *pkcs11Session) (err error) {
-		certs = append(certs, cert)
-
 		certChain, err := findCertificateChain(session, cert)
 		if err != nil {
 			return err
 		}
 
-		if len(certChain) == 0 {
-			return nil
+		if len(certChain) > 0 {
+			if !bytes.Equal(certChain[0].RawSubject, cert.RawSubject) {
+				certs = append(certs, cert)
+			}
+			certs = append(certs, certChain...)
+		} else {
+			certs = append(certs, cert)
 		}
-
-		certs = append(certs, certChain...)
-
-		return nil
+		return
 	})
-
-	return certs, err
+	return
 }
 
 func (c *Context) FindAllPairedCertificates() (certificates []tls.Certificate, err error) {
