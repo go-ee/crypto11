@@ -193,10 +193,11 @@ func findCertificateChainFromPools(session *pkcs11Session, cert *x509.Certificat
 		Intermediates: session.inters,
 		Roots:         session.roots,
 	})
-	if len(chains) > 0 {
-		ret = chains[0]
-		if len(ret) > 0 {
-			ret = ret[1:]
+
+	// search for chain with length size
+	for _, chain := range chains {
+		if ret == nil || len(ret) < len(chain) {
+			ret = chain
 		}
 	}
 	return
