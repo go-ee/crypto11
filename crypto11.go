@@ -500,6 +500,6 @@ func (c *Context) Close() error {
 	return nil
 }
 
-func (c *Context) Cтх() (ret *pkcs11.Ctx) {
+func (c *Context) Ctx() (ret *pkcs11.Ctx) {
 	return c.ctx
 }
