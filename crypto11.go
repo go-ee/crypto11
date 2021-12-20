@@ -499,3 +499,7 @@ func (c *Context) Close() error {
 	c.ctx.Destroy()
 	return nil
 }
+
+func (c *Context) Cтх() (ret *pkcs11.Ctx) {
+	return c.ctx
+}
